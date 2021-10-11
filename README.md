@@ -1,7 +1,14 @@
-data-science-ethereum
-==============================
+# Ethereum Data Analisys 
 
-analise de dados sobre a rede ethereum
+#### -- Project Status: [Active]
+
+## Project Intro/Objective
+O objetivo desse projeto é analisar informações sobre a rede Ethereum.
+
+### Collaborators
+|Name     |  Github Page   | 
+|---------|-----------------|
+|Júlia Valadares | [juliaavaladares](https://github.com/juliaavaladares)| [www.mishaberrien.com] |
 
 Project Organization
 ------------
@@ -53,5 +60,26 @@ Project Organization
 
 
 --------
+### Methods Used
+* Aprendizado de Máquina
+* Modelos de predição
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+### Technologies
+
+* Python
+* Pandas, Jupyter
+
+## Getting Started
+
+1. Clone o repositório (for help see this [tutorial](https://help.github.com/articles/cloning-a-repository/)).
+2. Raw Data is being kept [here](Repo folder containing raw data) within this repo.
+3. Data processing/transformation scripts are being kept [here](Repo folder containing data processing scripts/notebooks)
+4. etc...
+5. Follow setup [instructions](Link to file)
+
+## Featured Notebooks/Analysis/Deliverables
+* [Notebook/Markdown/Slide Deck Title](#)
+* [Notebook/Markdown/Slide DeckTitle](#)
+* [Blog Post](#)
+
+---
