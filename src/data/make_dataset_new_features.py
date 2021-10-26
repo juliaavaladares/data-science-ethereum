@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import tqdm 
+from tqdm import tqdm 
 
 def count_sent_recived(accounts, user_to, user_from):
     '''
@@ -41,15 +41,19 @@ def count_contracts(df, accounts):
     return contracts_sent, contracts_received
 
 def main():
-    df_transactions = pd.read_csv('dataset_fix_20200810.csv')
-    df = pd.read_csv('accounts_features.csv')
+    path = "../../data/raw/"
+    eth1 = pd.read_csv(path+"eth-new-dataset0.txt", sep=",", usecols=["hash", "from", "to", "value"])
+    eth2 = pd.read_csv(path+"eth-new-dataset1.txt", sep=",", usecols=["hash", "from", "to", "value"])
+    
+    df_transactions = pd.concat([eth1, eth2], ignore_index=True)
+    accounts = pd.read_csv(path+"Accounts2021.csv")
 
-    sent, received = count_sent_recived(df.user_account, df_transactions.user_to, df_transactions.user_from)
-    contracts_sent, contracts_received = count_contracts(df_transactions, df.user_account)
+    sent, received = count_sent_recived(accounts.accounts, df_transactions.to, df_transactions["from"])
+    contracts_sent, contracts_received = count_contracts(df_transactions, accounts.accounts)
 
-    df['sent'] = sent
-    df['received'] = received
-    df['n_contracts_sent'] = contracts_sent
-    df['n_contracts_received'] = contracts_received
+    accounts['sent'] = sent
+    accounts['received'] = received
+    accounts['n_contracts_sent'] = contracts_sent
+    accounts['n_contracts_received'] = contracts_received
 
-    df.to_csv('accounts_features.csv', index=False)
+    accounts.to_csv('accounts_features.csv', index=False)
