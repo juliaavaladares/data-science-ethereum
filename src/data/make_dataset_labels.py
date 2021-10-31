@@ -33,7 +33,7 @@ def getLabels(address):
     
 #write_file("user_account,labels,is_professional")
 
-contas = pd.read_csv('../../data/raw/Accounts2021.csv', skiprows=(1,2888))
+contas = pd.read_csv('../../data/raw/Accounts2021.csv', skiprows=(1,80907))
 contas= contas["accounts"].values
 
 for conta in tqdm(contas):

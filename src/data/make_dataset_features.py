@@ -12,7 +12,7 @@ def write_file(line):
         file.write(line+"\n")
 
 # read the dataset with the data collection by transactions, that contain users hash
-accounts_data_frame = pd.read_csv(path + 'Accounts2021.csv', nrows=10000)
+accounts_data_frame = pd.read_csv(path + 'Accounts2021.csv', nrows=20000, skiprows=range(1,32501))
 
 url_default = 'https://etherscan.io/address/'
 hdr = {'User-Agent': 'Mozilla/5.0'}
@@ -62,7 +62,7 @@ def get_info_account(account_hash):
 print("------------------START COLLECTING FEATURES--------------------")
 
 for account_hash in tqdm(accounts_data_frame["accounts"].values):
-    time.sleep(4)
+    time.sleep(2)
     account, balance_ether, balance_value, total_transactions = get_info_account(account_hash)
     line = account + "," + str(balance_ether) + "," + str(balance_value)+ "," + str(total_transactions)
     write_file(line)
