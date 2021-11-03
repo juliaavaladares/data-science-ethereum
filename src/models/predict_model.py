@@ -257,13 +257,7 @@ def cv(X, y, model, name, balancer = None, params=None):
     results = [acur, prec, reca, fbeta, fbeta2, MCC, int(tp), int(tn), auc]
     results_metrics = results_metrics.append(pd.DataFrame([results], index=[name], columns=results_metrics.columns))
     
-    #Se o modelo for grid search, ele vai plotar a decisão dos pesos
-    #if params != None:
-    #    grid_search_plot_results(model, params)
 
-    #Final confusion Matrix
-    #cm = np.array([[tn,fp],[fn,tp]])
-    #plot_confusion_matrix(cm,[0,1])
     
     return results_metrics, results_cv, bestModel
 
