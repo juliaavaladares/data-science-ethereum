@@ -175,7 +175,7 @@ def grid_search_plot_results(gs, params):
         print("\t%s: %r" % (param_name, best_parameters[param_name]))
 
 
-def cv(X, y, model, name, balancer = None, params=None):
+def cv(X, y, model, name, balancer = None, params=None, X_new_dataset = None, y_new_dataset = None):
 
     results_cv = metrics_structure()
     
@@ -183,23 +183,25 @@ def cv(X, y, model, name, balancer = None, params=None):
     tn = 0
     fp = 0
     fn = 0
-    auc_media = 0
+    #auc_media = 0
     
     skfold = StratifiedKFold(n_splits=10)
     
     for fold, (train_index, test_index) in tqdm(enumerate(skfold.split(X, y), 1)):
         start_time = time.time()
         X_train = X[train_index]
-        y_train = y[train_index] # Based on your code, you might need a ravel call here, but I would look into how you're generating your y
-        X_test = X[test_index]
-        y_test = y[test_index]  # See comment on ravel and  y_train
+        y_train = y[train_index] 
+
+        if len(X_new_dataset) > 0 and len(y_new_dataset) > 0:
+            X_test = X_new_dataset
+            y_test = y_new_dataset
+        else:
+            X_test = X[test_index]
+            y_test = y[test_index]  
+        
         if balancer is not None:
             X_train, y_train = balancer.fit_resample(X_train, y_train)
 
-        print("-----------------------------------")
-        print(X_train.dtype)
-        print(model)
-        print("-----------------------------------")
         model.fit(X_train, y_train)
         
 
@@ -226,8 +228,8 @@ def cv(X, y, model, name, balancer = None, params=None):
         result_fold = [acuracy, precision, recall, f_score, f_beta, MCC, tp, tn, ROC]
         results_cv = results_cv.append(pd.DataFrame([result_fold], index=[('Fold' + str(fold))], columns=results_cv.columns))
         
-        analysis(X_test, y_test, y_predict, model, name)
-        
+        #analysis(X_test, y_test, y_predict, model, name)
+        #
         if fold == 1:
             print('best fold', str(fold))
             bestROC = ROC
@@ -277,15 +279,22 @@ def generate_models():
     return estimators
 
 
-df = pd.read_csv(path+"final_dataset_2021.csv")
+######## READ DATASET ######################
+old_dataset = pd.read_csv("../../data/raw/new_accounts_features2020.csv")
+new_dataset = pd.read_csv("../../data/processed/final_dataset_2021.csv")
 # user_account, balance_ether,balance_value,total_transactions,sent,received,n_contracts_sent,n_contracts_received,labels,is_professional
 
-X = df.iloc[:,[1,3,4,5,6,7]]
-y = df.iloc[:, 9]
+X_new_dataset = new_dataset.iloc[:,[1,3,4,5,6,7]]
+y_new_dataset = new_dataset.iloc[:, 9]
 
 
+X_old_dataset = old_dataset.iloc[:,[1,3,4,5,6,7]]
+Y_old_dataset = old_dataset.iloc[:, 8]
+
+######## NORMALIZE  DATASET ######################
 scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
-X = scaler.fit_transform(X)
+X_old_dataset = scaler.fit_transform(X_old_dataset)
+X_new_dataset = scaler.fit_transform(X_new_dataset)
 
 ros = RandomOverSampler()
 rus = RandomUnderSampler()
@@ -306,12 +315,12 @@ def store_results(results_metrics_no_balance, results_metrics_undersample, resul
     
     return results
 
-def calculates_results(X,y,model, text, best_model=False):
+def calculates_results(X,y,model, text, best_model=False, X_new_dataset = None, y_new_dataset = None):
 
-    results_metrics_no_balance, _, best_model_no_balance = cv(X,y,model, text +' No Balance')
-    results_metrics_undersample, _, best_model_under = cv(X,y,model, text +' UnderSample', balancer=rus)
-    results_metrics_oversample, _, best_model_over = cv(X,y,model,text + ' OverSample', balancer=ros)
-    results_metrics_smote, _, best_model_smote = cv(X,y,model,text + ' Smote', balancer=smt)
+    results_metrics_no_balance, _, best_model_no_balance = cv(X,y,model, text +' No Balance', X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
+    results_metrics_undersample, _, best_model_under = cv(X,y,model, text +' UnderSample', balancer=rus, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
+    results_metrics_oversample, _, best_model_over = cv(X,y,model,text + ' OverSample', balancer=ros, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
+    results_metrics_smote, _, best_model_smote = cv(X,y,model,text + ' Smote', balancer=smt, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
 
     if best_model:
         return [results_metrics_no_balance, best_model_no_balance], [results_metrics_undersample, best_model_under],\
@@ -321,8 +330,8 @@ def calculates_results(X,y,model, text, best_model=False):
 
 
 
-def cross_validation(X,y,model, text, importance = False, plot_decision_tree=False):
-    results_metrics = calculates_results(X,y,model, text, importance)
+def cross_validation(X,y,model, text, importance = False, plot_decision_tree=False, X_new_dataset = None, y_new_dataset = None):
+    results_metrics = calculates_results(X,y,model, text, importance, X_new_dataset = X_new_dataset, y_new_dataset = y_new_dataset)
     
     if importance:
         results = store_results(results_metrics[0][0], results_metrics[1][0], results_metrics[2][0], results_metrics[3][0])
@@ -375,10 +384,10 @@ def write_file(all_results):
 
 
 #Classifiers
-knn_results = cross_validation(X,y,estimators[0][1], estimators[0][0])
-decision_tree_results = cross_validation(X,y,estimators[1][1], estimators[1][0], True, True)
-random_forest_results = cross_validation(X,y,estimators[2][1], estimators[2][0], True)
-logistic_regression_results = cross_validation(X,y,estimators[3][1], estimators[3][0])
+knn_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[0][1], estimators[0][0], X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
+decision_tree_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[1][1], estimators[1][0], True, True, X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
+random_forest_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[2][1], estimators[2][0], True, X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
+logistic_regression_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[3][1], estimators[3][0], X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
 #linear_svm_results = cross_validation(X,y,estimators[4][1], estimators[4][0])
 #gaussian_svm_results = cross_validation(X,y,estimators[5][1], estimators[5][0])
 #sigmoid_svm_results = cross_validation(X,y,estimators[6][1], estimators[6][0])
