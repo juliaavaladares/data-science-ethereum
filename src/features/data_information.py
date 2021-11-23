@@ -28,7 +28,10 @@ def create_3d_graphic(x, y, z, name, labels=None):
 
 
 # Colunas 'user_account', 'balance_ether', 'balance_value', 'total_transactions', 'sent', 'received', 'n_contracts_sent', 'n_contracts_received','labels', 'is_professional'
-data = pd.read_csv("../../data/processed/final_dataset_2021.csv")
+data = pd.read_csv("../../data/raw/new_accounts_features2020.csv")
+data_labels = pd.read_csv("../../data/processed/accounts_labels_2020.txt")
+data["labels"] = data_labels["labels"]
+
 labeled_accounts = data[data["labels"] != "No label"]
 
 # ======================= ALLL ACCOUNTS 3D PLLOT ===========================
@@ -38,7 +41,7 @@ axis_y = data_normalized[:,1] #Total_transactions
 axis_z = data_normalized[:,2] #Sent
 
 labels = enconde_labels(data["labels"].values)
-create_3d_graphic(axis_x, axis_y, axis_z, "all_accounts",labels)
+create_3d_graphic(axis_x, axis_y, axis_z, "all_accounts_2020")
 
 # ======================= ALLL DATA 3D PLLOT ===========================
 
@@ -48,4 +51,4 @@ axis_y = data_normalized[:,1] #Total_transactions
 axis_z = data_normalized[:,2] #Sent
 
 labels = enconde_labels(labeled_accounts["labels"].values)
-create_3d_graphic(axis_x, axis_y, axis_z, "labeled_accounts", labels)
+create_3d_graphic(axis_x, axis_y, axis_z, "labeled_accounts_2020", labels)

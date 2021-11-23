@@ -6,7 +6,7 @@ import pandas as pd
 import re
 
 def write_file(line):
-    with open("../../data/processed/accounts_labels_2021.txt", "a") as file:
+    with open("../../data/processed/accounts_labels_2022.txt", "a") as file:
         file.write(line+"\n")
 
 def getLabels(address):
@@ -31,10 +31,10 @@ def getLabels(address):
     return address, ["No label"], 0
     
     
-#write_file("user_account,labels,is_professional")
+write_file("user_account,labels,is_professional")
 
-contas = pd.read_csv('../../data/raw/Accounts2021.csv', skiprows=(1,80907))
-contas= contas["accounts"].values
+contas = pd.read_csv('../../data/raw/new_accounts_features2020.csv')
+contas= contas["user_account"].values
 
 for conta in tqdm(contas):
     account, labels, is_professional = getLabels(conta)
