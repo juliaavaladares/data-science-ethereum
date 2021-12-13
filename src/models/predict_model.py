@@ -175,7 +175,7 @@ def grid_search_plot_results(gs, params):
         print("\t%s: %r" % (param_name, best_parameters[param_name]))
 
 
-def cv(X, y, model, name, balancer = None, params=None, X_new_dataset = None, y_new_dataset = None):
+def cv(X, y, model, name, balancer = None, params=None):
 
     results_cv = metrics_structure()
     
@@ -192,12 +192,12 @@ def cv(X, y, model, name, balancer = None, params=None, X_new_dataset = None, y_
         X_train = X[train_index]
         y_train = y[train_index] 
 
-        if len(X_new_dataset) > 0 and len(y_new_dataset) > 0:
-            X_test = X_new_dataset
-            y_test = y_new_dataset
-        else:
-            X_test = X[test_index]
-            y_test = y[test_index]  
+        #if len(X_new_dataset) > 0 and len(y_new_dataset) > 0:
+        #    X_test = X_new_dataset
+        #    y_test = y_new_dataset
+        #else:
+        X_test = X[test_index]
+        y_test = y[test_index]  
         
         if balancer is not None:
             X_train, y_train = balancer.fit_resample(X_train, y_train)
@@ -280,21 +280,23 @@ def generate_models():
 
 
 ######## READ DATASET ######################
-old_dataset = pd.read_csv("../../data/raw/new_accounts_features2020.csv")
-new_dataset = pd.read_csv("../../data/processed/final_dataset_2021.csv")
+dataset = pd.read_csv("../../data/processed/dataset_mylabels_2020.csv")
+#new_dataset = pd.read_csv("../../data/processed/final_dataset_2021.csv")
 # user_account, balance_ether,balance_value,total_transactions,sent,received,n_contracts_sent,n_contracts_received,labels,is_professional
 
-X_new_dataset = new_dataset.iloc[:,[1,3,4,5,6,7]]
-y_new_dataset = new_dataset.iloc[:, 9]
+#X_new_dataset = new_dataset.iloc[:,[1,3,4,5,6,7]]
+#y_new_dataset = new_dataset.iloc[:, 9]
 
+dataset = dataset[dataset.my_labels != -1]
+dataset.reset_index(drop=True, inplace=True)
 
-X_old_dataset = old_dataset.iloc[:,[1,3,4,5,6,7]]
-Y_old_dataset = old_dataset.iloc[:, 8]
+X = dataset.iloc[:,[1,3,4,5,6,7]]
+y = dataset.iloc[:, 8]
 
 ######## NORMALIZE  DATASET ######################
 scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
-X_old_dataset = scaler.fit_transform(X_old_dataset)
-X_new_dataset = scaler.fit_transform(X_new_dataset)
+X = scaler.fit_transform(X)
+#X_new_dataset = scaler.fit_transform(X_new_dataset)
 
 ros = RandomOverSampler()
 rus = RandomUnderSampler()
@@ -315,12 +317,12 @@ def store_results(results_metrics_no_balance, results_metrics_undersample, resul
     
     return results
 
-def calculates_results(X,y,model, text, best_model=False, X_new_dataset = None, y_new_dataset = None):
+def calculates_results(X,y,model, text, best_model=False):
 
-    results_metrics_no_balance, _, best_model_no_balance = cv(X,y,model, text +' No Balance', X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
-    results_metrics_undersample, _, best_model_under = cv(X,y,model, text +' UnderSample', balancer=rus, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
-    results_metrics_oversample, _, best_model_over = cv(X,y,model,text + ' OverSample', balancer=ros, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
-    results_metrics_smote, _, best_model_smote = cv(X,y,model,text + ' Smote', balancer=smt, X_new_dataset=X_new_dataset , y_new_dataset=y_new_dataset)
+    results_metrics_no_balance, _, best_model_no_balance = cv(X,y,model, text +' No Balance')
+    results_metrics_undersample, _, best_model_under = cv(X,y,model, text +' UnderSample', balancer=rus)
+    results_metrics_oversample, _, best_model_over = cv(X,y,model,text + ' OverSample', balancer=ros)
+    results_metrics_smote, _, best_model_smote = cv(X,y,model,text + ' Smote', balancer=smt)
 
     if best_model:
         return [results_metrics_no_balance, best_model_no_balance], [results_metrics_undersample, best_model_under],\
@@ -330,8 +332,8 @@ def calculates_results(X,y,model, text, best_model=False, X_new_dataset = None, 
 
 
 
-def cross_validation(X,y,model, text, importance = False, plot_decision_tree=False, X_new_dataset = None, y_new_dataset = None):
-    results_metrics = calculates_results(X,y,model, text, importance, X_new_dataset = X_new_dataset, y_new_dataset = y_new_dataset)
+def cross_validation(X,y,model, text, importance = False, plot_decision_tree=False):
+    results_metrics = calculates_results(X,y,model, text, importance)
     
     if importance:
         results = store_results(results_metrics[0][0], results_metrics[1][0], results_metrics[2][0], results_metrics[3][0])
@@ -384,29 +386,29 @@ def write_file(all_results):
 
 
 #Classifiers
-knn_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[0][1], estimators[0][0], X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
-decision_tree_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[1][1], estimators[1][0], True, True, X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
-random_forest_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[2][1], estimators[2][0], True, X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
-logistic_regression_results = cross_validation(X_old_dataset,Y_old_dataset,estimators[3][1], estimators[3][0], X_new_dataset=X_new_dataset, y_new_dataset=y_new_dataset)
-#linear_svm_results = cross_validation(X,y,estimators[4][1], estimators[4][0])
-#gaussian_svm_results = cross_validation(X,y,estimators[5][1], estimators[5][0])
-#sigmoid_svm_results = cross_validation(X,y,estimators[6][1], estimators[6][0])
+knn_results = cross_validation(X,y,estimators[0][1], estimators[0][0])
+decision_tree_results = cross_validation(X,y,estimators[1][1], estimators[1][0], True, True)
+random_forest_results = cross_validation(X,y,estimators[2][1], estimators[2][0], True)
+logistic_regression_results = cross_validation(X,y,estimators[3][1], estimators[3][0])
+linear_svm_results = cross_validation(X,y,estimators[4][1], estimators[4][0])
+gaussian_svm_results = cross_validation(X,y,estimators[5][1], estimators[5][0])
+sigmoid_svm_results = cross_validation(X,y,estimators[6][1], estimators[6][0])
 
 all_results = all_results.append([knn_results, decision_tree_results, random_forest_results, logistic_regression_results])
 write_file(all_results)
 
 #Voting Classifiers
-#results_voting_hard_classifier, voting_hard_classifier = ensamble_method(X,y,estimators, 'hard', 'Voting Hard')
-#results_voting_soft_classifier, voting_soft_classifier = ensamble_method(X,y,estimators, 'soft', 'Voting Soft')
+results_voting_hard_classifier, voting_hard_classifier = ensamble_method(X,y,estimators, 'hard', 'Voting Hard')
+results_voting_soft_classifier, voting_soft_classifier = ensamble_method(X,y,estimators, 'soft', 'Voting Soft')
 
 
-#all_results = all_results.append([results_voting_soft_classifier])
-#write_file(all_results)
+all_results = all_results.append([results_voting_soft_classifier, results_voting_hard_classifier])
+write_file(all_results)
 
 #Grid Search
 #results_grid = grid_search(X,y, voting_soft_classifier)
 #write_file(results_grid)
 #all_results = all_results.append([results_grid])
 
-all_results.to_csv(reports_path+'resultados_classificadores_2021.csv', index=False)
+all_results.to_csv(reports_path+'resultados_classificadores_2020.csv', index=False)
 

@@ -1,3 +1,4 @@
+from typing import final
 import numpy as np
 import pandas as pd
 
@@ -12,17 +13,16 @@ data_kmeans = pd.read_csv("../../data/processed/kmeans_clusters.csv")
 columns_features = list(data_kmeans.iloc[:, [0,1,2,3,4,5,6,7]].columns.values)
 columns_clusters = list(data_kmeans.iloc[:, [10,11,12,13,14,15,16,17,18]].columns.values)
 
+final_cluster_info = pd.DataFrame()
+
 for cluster in columns_clusters:
     columns_features.append(cluster)
 
     cluster_info = data_kmeans[columns_features].groupby(cluster).agg(['min', 'max', 'mean'])
-
-    with open("cluster_information.txt", 'a') as file:
-        cluster_info_as_string = cluster_info.to_string()
-        file.write(cluster_info_as_string)
-        file.write("\n")
+    final_cluster_info = final_cluster_info.append(cluster_info)
 
     del columns_features[-1]
 
+final_cluster_info.to_csv("../../reports/clusters_info.csv")
 
 
