@@ -5,6 +5,7 @@ from os import path
 import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt
+from pandas.core.series import Series
 from tqdm import tqdm
 import time
 import itertools
@@ -29,11 +30,11 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import export_graphviz
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-#from thundersvm import SVC
+from sklearn.semi_supervised import SelfTrainingClassifier 
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import GridSearchCV
 
-#np.random.seed(0)
+np.random.seed(0)
 path = "../../data/processed/"
 figures_path = '../../reports/figures/'
 reports_path = '../../reports/'
@@ -56,6 +57,20 @@ def metrics_structure():
                             'ROC Curve':[]}, )
     results.index.names = ['Algoritmos']
     return results
+
+def get_unlabeled_accounts():
+    dataset = pd.read_csv("../../data/processed/dataset_mylabels_2020.csv")
+
+    dataset = dataset[dataset.my_labels == -1]
+    dataset.reset_index(drop=True, inplace=True)
+    
+    X = dataset.iloc[:,[1,3,4,5,6,7]]
+    y = dataset.iloc[:, 10]
+
+    scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
+    X = scaler.fit_transform(X)
+
+    return X, y
 
 def get_metrics(y_test, y_predict):
 
@@ -183,33 +198,48 @@ def cv(X, y, model, name, balancer = None, params=None):
     tn = 0
     fp = 0
     fn = 0
-    #auc_media = 0
     
     skfold = StratifiedKFold(n_splits=10)
+
+    X_unlab, y_unlab = get_unlabeled_accounts() 
+    print("X_Unlab: ", X_unlab)
+    print("Y_Unlab: ", y_unlab)
     
     for fold, (train_index, test_index) in tqdm(enumerate(skfold.split(X, y), 1)):
         start_time = time.time()
+        
         X_train = X[train_index]
         y_train = y[train_index] 
 
-        #if len(X_new_dataset) > 0 and len(y_new_dataset) > 0:
-        #    X_test = X_new_dataset
-        #    y_test = y_new_dataset
-        #else:
+        X_train = np.concatenate((X_train, X_unlab))
+        y_train = np.concatenate((y_train, y_unlab))
+
         X_test = X[test_index]
-        y_test = y[test_index]  
-        
+        y_test = y[test_index]
+
+        ### UNLABELED DATA TO TUNE THE MODEL
+        self_training_model = SelfTrainingClassifier(base_estimator=model, criterion='threshold', 
+                                             max_iter=100, 
+                                             verbose=True 
+                                            )
+
         if balancer is not None:
             X_train, y_train = balancer.fit_resample(X_train, y_train)
 
+        
+        clf_ST = self_training_model.fit(X_train, y_train)
         model.fit(X_train, y_train)
         
-
-        y_predict = model.predict(X_test)
+        
+        y_predict = clf_ST.predict(X_test)
+        
+        
+        print("Y predict:\n", Series(y_predict).value_counts())
+        print("Y test:\n", Series(y_test).value_counts())
 
         print(f'For fold {fold}:')
         acuracy = metrics.accuracy_score(y_test, y_predict)
-        precision = metrics.precision_score(y_test, y_predict)
+        precision = metrics.precision_score(y_test, y_predict, average=None)
         recall = metrics.recall_score(y_test, y_predict)
         f_score = metrics.f1_score(y_test, y_predict)
         f_beta = metrics.fbeta_score(y_test, y_predict, beta=2)
@@ -228,8 +258,7 @@ def cv(X, y, model, name, balancer = None, params=None):
         result_fold = [acuracy, precision, recall, f_score, f_beta, MCC, tp, tn, ROC]
         results_cv = results_cv.append(pd.DataFrame([result_fold], index=[('Fold' + str(fold))], columns=results_cv.columns))
         
-        #analysis(X_test, y_test, y_predict, model, name)
-        #
+        
         if fold == 1:
             print('best fold', str(fold))
             bestROC = ROC
@@ -254,12 +283,11 @@ def cv(X, y, model, name, balancer = None, params=None):
     MCC = (tp*tn-fp*fn)/np.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn))
     auc = (tp/((tp+fn)*2)) + (tn/((tn+fp)*2))
 
+    pd.DataFrame(clf_ST.transduction_, columns=["transduction_labels"]).to_csv(reports_path+"y_predict_semi_supervised")
 
     results_metrics = metrics_structure()
     results = [acur, prec, reca, fbeta, fbeta2, MCC, int(tp), int(tn), auc]
     results_metrics = results_metrics.append(pd.DataFrame([results], index=[name], columns=results_metrics.columns))
-    
-
     
     return results_metrics, results_cv, bestModel
 
@@ -281,22 +309,19 @@ def generate_models():
 
 ######## READ DATASET ######################
 dataset = pd.read_csv("../../data/processed/dataset_mylabels_2020.csv")
-#new_dataset = pd.read_csv("../../data/processed/final_dataset_2021.csv")
-# user_account, balance_ether,balance_value,total_transactions,sent,received,n_contracts_sent,n_contracts_received,labels,is_professional
 
-#X_new_dataset = new_dataset.iloc[:,[1,3,4,5,6,7]]
-#y_new_dataset = new_dataset.iloc[:, 9]
-
-#dataset = dataset[dataset.my_labels != -1]
-#dataset.reset_index(drop=True, inplace=True)
+dataset = dataset[dataset.my_labels != -1]
+dataset.reset_index(drop=True, inplace=True)
 
 X = dataset.iloc[:,[1,3,4,5,6,7]]
-y = dataset.iloc[:, 8]
+y = dataset.iloc[:, 10]
+
+
 
 ######## NORMALIZE  DATASET ######################
 scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
 X = scaler.fit_transform(X)
-#X_new_dataset = scaler.fit_transform(X_new_dataset)
+
 
 ros = RandomOverSampler()
 rus = RandomUnderSampler()
@@ -381,7 +406,7 @@ def grid_search(X, y, estimator):
     return results
 
 def write_file(all_results):
-    with open(reports_path+"output_results_2021.txt", 'a') as outfile:
+    with open(reports_path+"output_results_semi_supervised_2020.txt", 'a') as outfile:
         all_results.to_string(outfile)
 
 
@@ -390,27 +415,23 @@ knn_results = cross_validation(X,y,estimators[0][1], estimators[0][0])
 decision_tree_results = cross_validation(X,y,estimators[1][1], estimators[1][0], True, True)
 random_forest_results = cross_validation(X,y,estimators[2][1], estimators[2][0], True)
 logistic_regression_results = cross_validation(X,y,estimators[3][1], estimators[3][0])
-linear_svm_results = cross_validation(X,y,estimators[4][1], estimators[4][0])
-gaussian_svm_results = cross_validation(X,y,estimators[5][1], estimators[5][0])
-sigmoid_svm_results = cross_validation(X,y,estimators[6][1], estimators[6][0])
-
+#linear_svm_results = cross_validation(X,y,estimators[4][1], estimators[4][0])
+#gaussian_svm_results = cross_validation(X,y,estimators[5][1], estimators[5][0])
+#sigmoid_svm_results = cross_validation(X,y,estimators[6][1], estimators[6][0])
+#
 all_results = all_results.append([knn_results, decision_tree_results, random_forest_results, 
-                                logistic_regression_results, linear_svm_results, gaussian_svm_results, 
-                                sigmoid_svm_results])
+                                logistic_regression_results])
+#                                linear_svm_results, gaussian_svm_results, 
+#                                sigmoid_svm_results])
 write_file(all_results)
-
+#
 #Voting Classifiers
-results_voting_hard_classifier, voting_hard_classifier = ensamble_method(X,y,estimators, 'hard', 'Voting Hard')
-results_voting_soft_classifier, voting_soft_classifier = ensamble_method(X,y,estimators, 'soft', 'Voting Soft')
+#results_voting_hard_classifier, voting_hard_classifier = ensamble_method(X,y,estimators, 'hard', 'Voting Hard')
+#results_voting_soft_classifier, voting_soft_classifier = ensamble_method(X,y,estimators, 'soft', 'Voting Soft')
 #
 #
-all_results = all_results.append([results_voting_soft_classifier, results_voting_hard_classifier])
-write_file(all_results)
+#all_results = all_results.append([results_voting_hard_classifier])
+#write_file(all_results)
 
-#Grid Search
-#results_grid = grid_search(X,y, voting_soft_classifier)
-#write_file(results_grid)
-#all_results = all_results.append([results_grid])
 
-#all_results.to_csv(reports_path+'resultados_classificadores_2020.csv', index=False)
 
