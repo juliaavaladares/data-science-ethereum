@@ -97,4 +97,4 @@ for classifier, model in estimators:
     # Look at classification report to evaluate the model
     print(classification_report(y_test, clf_ST.predict(X_test)))
 
-results.to_csv("../../reports/semi_supervised_results.csv", index=False)
+results.to_csv("../../reports/semi_supervised_results_2023.csv", index=False)
