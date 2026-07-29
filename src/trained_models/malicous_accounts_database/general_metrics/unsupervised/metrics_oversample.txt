@@ -1,0 +1,6 @@
+                 Acuracy  Precision    Recall  F1-score    F-beta       MCC      TP     TP (%)       TN     TN (%)  ROC Curve
+knn_oversample  0.841842   0.371144  0.630754  0.467314  0.553343  0.400218  1973.0  63.075448  21969.0  86.792826   0.749341                 Acuracy  Precision    Recall  F1-score    F-beta       MCC      TP     TP (%)       TN     TN (%)  ROC Curve
+dct_oversample  0.849719   0.412197  0.859974  0.557282  0.706482  0.527116  2690.0  85.997442  21476.0  84.845133   0.854213               Acuracy  Precision    Recall  F1-score    F-beta       MCC      TP     TP (%)       TN     TN (%)  ROC Curve
+rf_oversample  0.90443   0.539775  0.889386  0.671818  0.787388  0.646269  2782.0  88.938619  22940.0  90.628951   0.897838                          Acuracy  Precision    Recall  F1-score   F-beta       MCC     TP     TP (%)       TN     TN (%)  ROC Curve
+gaussian_svm_oversample  0.874191   0.381204  0.230818  0.287535  0.25059  0.231548  722.0  23.081841  24140.0  95.369785   0.592258                         Acuracy  Precision    Recall  F1-score    F-beta       MCC     TP     TP (%)       TN     TN (%)  ROC Curve
+sigmoid_svm_oversample  0.900316   0.894879  0.106138  0.189769  0.128852  0.288414  332.0  10.613811  25273.0  99.845923   0.552299
